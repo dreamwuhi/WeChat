@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Window>
+	<ListContainerElement>
+		<VerticalLayout>
+			<HorizontalLayout>
+				<Button name="chat_logo" />
+				<!-- <Button name="chat_text" font="3" padding="10,0,0,0" textpadding="10,0,0,0"/> -->
+				<RichEdit name="chat_text" font="3" padding="10,0,0,0" readonly="true" textpadding="15,5,0,0"/>
+			</HorizontalLayout>
+		</VerticalLayout>
+	</ListContainerElement>
+</Window>

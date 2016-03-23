@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DefaultConfig>
+    <Font name="微软雅黑" id="0" size="12" bold="false" default="true" />
+  	<Font name="微软雅黑" id="1" size="25"/> 
+  	<Font name="微软雅黑" id="2" size="15"/>
+  	<Font name="微软雅黑" id="3" size="13"/>
+  	<Default name="VScrollBar" value="width=&quot;13&quot; showbutton1=&quot;false&quot; showbutton2=&quot;false&quot; thumbnormalimage=&quot;file='scrollbar_normal.png' corner=&apos;5,5,5,5&apos;&quot; thumbhotimage=&quot;file='scrollbar_hover.png' corner=&apos;2,2,2,2&apos;&quot; " />
+</DefaultConfig>

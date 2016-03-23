@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?> <!-- 定义每个列表的内容结构 -->
+<Window>
+  <ListContainerElement>
+    <VerticalLayout height="50">
+      <HorizontalLayout>
+        <VerticalLayout name="logo_container" width="50" inset="10,5,0,0">
+           <Button name="logo" width="40" height="40" mouse="true"/>
+        </VerticalLayout>
+        <VerticalLayout inset="10,0,0,0">
+            <Label name="nickname" bordersize="0" width="120" textpadding="0,5,5,0" textcolor="#FF000000"/>
+            <Label name="description" bordersize="0" textpadding="0,0,0,0" textcolor="#FF808080" />
+        </VerticalLayout>
+      </HorizontalLayout>
+    </VerticalLayout>
+  </ListContainerElement>
+</Window>
