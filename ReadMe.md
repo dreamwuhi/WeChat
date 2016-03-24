@@ -8,8 +8,8 @@
 ##已完成功能
 
 ###2016-3-24 更新功能 设置窗口
-![](logo/c8.png)
-![](logo/c9.png)
+![](Logo/c8.png)
+![](Logo/c9.png)
 ###1、主界面
 ![主界面](Logo/c1.png)
 
@@ -31,3 +31,4 @@
 
 ##联系方式
 QQ：505273598
+Weibo:[](http://weibo.com/u/2007921855/home?wvr=5)
