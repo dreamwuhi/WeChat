@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "MainFrame.h"
 #include "resource.h"
+#include "SettingFrame.h"
 
 #define WM_MYMSG_01    9999
 #define WM_ICON	WM_USER + 1
@@ -31,7 +32,7 @@ DuiLib::CDuiString CMainFrame::GetSkinFile()
 
 DuiLib::CDuiString CMainFrame::GetSkinFolder()
 {
-	return _T("OwnerFolder");
+	return _T("skin");
 }
 
 void CMainFrame::OnPrepare()
@@ -50,6 +51,15 @@ void CMainFrame::Notify(TNotifyUI& msg)
 	{
 		if(SenderName == L"send")
 			OnSendMessage();
+		else if(SenderName == L"setting")
+		{
+			CSettingFrame *settingFrame =new CSettingFrame();
+			settingFrame->Create(NULL, _T(""), UI_WNDSTYLE_FRAME, WS_EX_WINDOWEDGE);
+			settingFrame->CenterWindow();
+			settingFrame->ShowModal();
+			delete settingFrame;
+			settingFrame = NULL;
+		}
 	}
 	else if(msg.sType == _T("windowinit"))
 	{
