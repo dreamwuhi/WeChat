@@ -5,8 +5,11 @@
 ### 1、（包含库文件） E：\users\WeChat\DuiLib; (users:用户根据自己路径)
 ### 2、（包含lib文件） E：\users\WeChat\Lib;    (users:用户根据自己路径)
 ![](Logo/c7.png)
-##完成功能
+##已完成功能
 
+###2016-3-24 更新功能 设置窗口
+![](logo/c8.png)
+![](logo/c9.png)
 ###1、主界面
 ![主界面](Logo/c1.png)
 
@@ -26,3 +29,5 @@
 ![托盘](Logo/c6.png)
 
 
+##联系方式
+QQ：505273598
