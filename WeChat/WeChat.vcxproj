@@ -39,8 +39,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\DuiLib_Redrain-master\DuiLib_Redrain-master\DuiLib;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\DuiLib_Redrain-master\DuiLib_Redrain-master\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>E:\github\_WeChat\WeChat\DuiLib;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\github\_WeChat\WeChat\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
