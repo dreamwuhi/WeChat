@@ -55,7 +55,7 @@
 ##完成功能
 
 ###1、主界面
-![]（https//github.com/dreamwuhi/Debug/OwnerFolder/c2.png）
+![](https//github.com/dreamwuhi/Debug/OwnerFolder/c2.png)
   
 
 
