@@ -55,7 +55,7 @@
 ##完成功能
 
 ###1、主界面
-![](https//github.com/dreamwuhi/Raw/master/Logo/c2.png)
+![xx](Logo/c2.png)
   
 
 
