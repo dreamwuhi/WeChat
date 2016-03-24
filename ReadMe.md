@@ -4,7 +4,7 @@
 ##配置需求
 ### 1、（包含库文件） E：\users\WeChat\DuiLib; (users:用户根据自己路径)
 ### 2、（包含lib文件） E：\users\WeChat\Lib;    (users:用户根据自己路径)
-
+![](Logo/c7.png)
 ##完成功能
 
 ###1、主界面
@@ -24,3 +24,5 @@
 
 ###6、托盘
 ![托盘](Logo/c6.png)
+
+
