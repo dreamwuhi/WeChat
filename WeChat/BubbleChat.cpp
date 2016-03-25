@@ -61,7 +61,7 @@ Node* DuiLib::CBubbleChat::AddNode(const BubbleItemInfo& item, Node* parent)
 		else
 		{
 			//log_text->SetFixedWidth(cx+15+5+5);
-			log_text->SetFixedWidth(cx +15 + 5);
+			log_text->SetFixedWidth(cx +15 + 3);
 			log_text->SetFixedHeight(34);
 			pListElement->SetFixedHeight(log_text->GetFixedHeight()+20);
 			log_text->SetNormalImage(L"file='RichEdit_normal.png' corner='10,5,5,5'");
