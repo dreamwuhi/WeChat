@@ -51,7 +51,7 @@ void CMainFrame::Notify(TNotifyUI& msg)
 	{
 		if(SenderName == L"send")
 			OnSendMessage();
-		else if(SenderName == L"setting")
+		else if(SenderName == L"setting")  //点击主界面上的设置按钮
 		{
 			CSettingFrame *settingFrame =new CSettingFrame();
 			settingFrame->Create(NULL, _T(""), UI_WNDSTYLE_FRAME, WS_EX_WINDOWEDGE);
@@ -536,6 +536,7 @@ void CMainFrame::OnSendMessage()
 {
 	//聊天窗口添加文字
 	CBubbleChat* pBubbleList = static_cast<CBubbleChat*>(m_PaintManager.FindControl(L"Bubble_Chat"));
+	//pBubbleList->SetHwnd(m_hWnd);
 	BubbleItemInfo item;
 	memset(&item,0,sizeof(BubbleItemInfo));
 	CRichEditUI* pInputEdit = static_cast<CRichEditUI*>(m_PaintManager.FindControl(L"input_edit"));

@@ -1,7 +1,7 @@
 #include "StdAfx.h"
 #include "BubbleChat.h"
 
-static int GetTextWidth(const TCHAR *text);
+static double GetTextWidth(const TCHAR *text);
 CBubbleChat::CBubbleChat(CPaintManagerUI& paint_manager) : paint_manager_(paint_manager), delay_deltaY_(0), delay_number_(0), delay_left_(0)
 {
 	root_node_ = new Node;
@@ -49,7 +49,7 @@ Node* DuiLib::CBubbleChat::AddNode(const BubbleItemInfo& item, Node* parent)
 	CRichEditUI* log_text = static_cast<CRichEditUI*>(paint_manager_.FindSubControlByName(pListElement, L"chat_text"));
 	if(log_text !=NULL)
 	{
-		int cx = GetTextWidth(item.buf);
+		int cx = GetTextWidth(item.buf);	
 		int off = cx / 337;
 		if(off >=1) 
 		{
@@ -60,7 +60,8 @@ Node* DuiLib::CBubbleChat::AddNode(const BubbleItemInfo& item, Node* parent)
 		}
 		else
 		{
-			log_text->SetFixedWidth(cx+15+5+5);
+			//log_text->SetFixedWidth(cx+15+5+5);
+			log_text->SetFixedWidth(cx +15 + 5);
 			log_text->SetFixedHeight(34);
 			pListElement->SetFixedHeight(log_text->GetFixedHeight()+20);
 			log_text->SetNormalImage(L"file='RichEdit_normal.png' corner='10,5,5,5'");
@@ -91,23 +92,155 @@ Node* DuiLib::CBubbleChat::AddNode(const BubbleItemInfo& item, Node* parent)
 	return node;
 }
 
-static int GetTextWidth(const TCHAR *text)
+static double GetTextWidth(const TCHAR *text)
 {
 	double nLen = 0;
 	int length = wcslen(text);
 	for (int i=0; i<length; ++i)
 	{
-		if((text[i] >='0' && text[i] <='9') || (text[i] >='a' && text[i] <= 'z'))
+		switch(text[i])
 		{
+		case 'A':
+		case 'C':
+		case 'V':
+			nLen+=8.5;
+			break;
+		case 'D':
+		case 'G':
+		case 'H':
+		case 'U':
+		//小写
+		case 'w':
+		//英文标点
+		case '&':
+		case '^':
+		case '=':
+		case '~':
+		case '+':
+			nLen+=10;
+			break;
+		case 'T':
+		case 'L':
+		case 'F':
+		case 'E':
+		//小写
+		case 'x':
+		case 'y':
+		case 'k':
+		case 'a':
+		case 'c':
+		case 'v':
+		case 'e':
+			nLen+=7;
+			break;
+		case 'I':
+		//空格
+		case ' ':
+		case '|':
+		case '{':
+		case '}':
+		case '[':
+		case ']':
+			nLen+=4;
+			break;
+		case 'J':
+		//小写 
+		case 'r':
+		case 'f':
+		case 't':
+		//英文标点
+		case '\\':
+			nLen +=5;
+			break;
+		case 'S':
+		case 'R':
+		case 'B':
+		case 'X':
+		case 'K':
+		case 'P':
+		case 'Y':
+		case 'Z':
+		//小写
+		case 'n':
+		case 'o':
+		case 'q':
+		case 'd':
+		case 'g':
+		case 'h':
+		case 'u':
+		case 'p':
+		case 'b':
+		//数字
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+		case '0':
+		//英文标点
+		case '#':
+		case '$':
 			nLen += 8;
-		}
-		else if(text[i] >='A' && text[i] <= 'Z')
-		{
-			nLen += 8.5; 
-		}
-		else 
-		{
+			break;
+		case 'N':
+		case 'O':
+		case 'Q':
+			nLen += 11;
+			break;
+		case 'W':
+		case 'M':
+		//中文标点
+		case '。':
+		case '，':
+		case '！':
+		case '？':
+		case '）':
+		case '（':
 			nLen += 13;
+			break;
+		//小写
+		case 'l':
+		case 'i':
+		case 'j':
+		//英文标点
+		case '.':
+		case ',':
+		case '`':
+		case '!':
+		case '(':
+		case ')':
+		case ':':
+		case ';':
+		case '\'':
+			nLen +=3;
+			break;
+		//小写
+		case 'm':
+		//英文标点
+		case '%':
+			nLen += 12;
+			break;
+		//小写
+		case 's':
+		case 'z':
+		//英文标点
+		case '*':
+		case '/':
+		case '-':
+		case '_':
+			nLen += 6;
+			break;
+		//英文标点
+		case '@':
+			nLen += 13;
+			break;
+		default:
+			nLen += 13;
+			break;
 		}
 	}
 	return ceil(nLen);
