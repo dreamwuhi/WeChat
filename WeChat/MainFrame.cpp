@@ -3,11 +3,15 @@
 #include "resource.h"
 #include "SettingFrame.h"
 
-#define WM_MYMSG_01    9999
-#define WM_ICON	WM_USER + 1
+#define WM_MYMSG_01    9999			//聊天窗口滚动条消息（目的：实现实时显示最后一条消息）
+#define WM_ICON	WM_USER + 1     //托盘消息
 CMainFrame::CMainFrame(void)
 {
 	icon = NULL;
+	selectItemNode = NULL;
+	Msgcount = 0;						//消息条数
+	pButton_MsgTip = NULL;			//显示消息条数控件
+	m_history = new CHistory();
 }
 
 
@@ -17,6 +21,11 @@ CMainFrame::~CMainFrame(void)
 	{
 		delete icon;
 		icon = NULL;
+	}
+	if(m_history)
+	{
+		delete m_history;
+		m_history = NULL;
 	}
 }
 
@@ -42,6 +51,7 @@ void CMainFrame::OnPrepare()
 	//icon->StartTwinkling();
 	UpgrateFriends();
 	UpgrateContacts();
+	pButton_MsgTip =  static_cast<CButtonUI*>(m_PaintManager.FindControl(L"Msg_Tip_Main"));
 }
  
 void CMainFrame::Notify(TNotifyUI& msg)
@@ -59,6 +69,10 @@ void CMainFrame::Notify(TNotifyUI& msg)
 			settingFrame->ShowModal();
 			delete settingFrame;
 			settingFrame = NULL;
+		}
+		else if(SenderName == L"Closebtn")
+		{
+			ShowWindow(SW_HIDE);  //点击关闭最小化到托盘
 		}
 	}
 	else if(msg.sType == _T("windowinit"))
@@ -156,6 +170,14 @@ CControlUI* CMainFrame::CreateControl(LPCTSTR pstrClass)
 	if (_tcsicmp(pstrClass, _T("FriendList")) == 0)   //自定义控件（列表框）
 	{
 		return new CFriendListUI(m_PaintManager);
+	}
+	else if(_tcsicmp(pstrClass, _T("BubbleChatList")) == 0)
+	{
+		return new CBubbleChat(m_PaintManager);
+	}
+	else if(_tcsicmp(pstrClass, _T("ContactList")) == 0)
+	{
+		return new CContactUI(m_PaintManager);
 	}
 	return NULL;
 }
@@ -370,7 +392,7 @@ void CMainFrame::UpgrateContacts()
 	}
 }
 
-void CMainFrame::UpgrateFriends()
+void CMainFrame::UpgrateFriends()    //最近联系人
 {
 	CFriendListUI* pFriendsList = static_cast<CFriendListUI*>(m_PaintManager.FindControl(L"friends"));
 	if(pFriendsList != NULL)
@@ -385,10 +407,10 @@ void CMainFrame::UpgrateFriends()
 		item.logo = _T("c2.png");
 		item.id = LAST_CONTACT;
 		item.folder = false;
-		pFriendsList->AddNode(item, NULL);		//添加根节点，返回自身节点（根）
+		Node* root = pFriendsList->AddNode(item, NULL);		//添加根节点，返回自身节点（根）
 		friends_.push_back(item);
 
-		for (int i=0; i<10; ++i)
+		for (int i=0; i<1; ++i)
 		{
 			memset(&item,0,sizeof(FriendListItemInfo));
 			item.nick_name = _T("马化腾");
@@ -429,6 +451,7 @@ void CMainFrame::OnSelectFriendList(TNotifyUI& msg, CFriendListUI* pFriendsList)
 	{
 		Node* node = (Node*)msg.pSender->GetTag();
 		if(node == NULL) return;
+		selectItemNode = node;
 		CTabLayoutUI* pControl = static_cast<CTabLayoutUI*>(m_PaintManager.FindControl(_T("default_bk")));
 		if(pControl == NULL) return;
 
@@ -438,6 +461,15 @@ void CMainFrame::OnSelectFriendList(TNotifyUI& msg, CFriendListUI* pFriendsList)
 			if(m_group_list)
 			{
 				pControl->SelectItem(3);
+				CBubbleChat* pBubbleList = static_cast<CBubbleChat*>(m_PaintManager.FindControl(L"Bubble_Chat"));
+				if(pBubbleList != NULL)
+				{
+					int n = pBubbleList->GetCount();
+					if(pBubbleList->GetCount() > 0)
+						pBubbleList->RemoveAll();
+					//m_history->DeleteMsg();
+					m_history->UpdateHis(selectItemNode,pBubbleList);
+				}
 			}
 		}
 	}
@@ -469,7 +501,7 @@ void CMainFrame::OnSelectContactList(TNotifyUI& msg, CContactUI* pFriendsList)
 					RECT rcTextPadding={0,73,0,0};
 					for (UINT i=0; i<res.size();++i)
 					{
-						CButtonUI *pBtn = new CButtonUI;
+						CButtonUI *pBtn = new CButtonUI;   //不清楚是在哪里delete
 						_stprintf(szPath, _T("file='%s' dest='5,10,66,71'"),res[i]->logo);
 						pBtn->SetBkImage(szPath);
 						pBtn->SetHotImage(L"file='bk_hover.png' corner='5,10,5,37' hole='true'");
@@ -546,19 +578,44 @@ void CMainFrame::OnSendMessage()
 		wcscpy(item.buf,pInputEdit->GetText().GetData());
 		if(wcslen(item.buf)>0)
 		{
+			//保存聊天记录
+			m_history->SaveHistory(selectItemNode,item.buf);
+			//............
 			pBubbleList->AddNode(item,NULL);
+			//添加缓存内容
+			CLabelUI* pLabel = static_cast<CLabelUI*>(m_PaintManager.FindSubControlByName(selectItemNode->data().list_elment_, L"Buffer_Text"));
+			if(pLabel)
+				pLabel->SetText(pInputEdit->GetText().GetData());
+			//设置时间
+			TCHAR buffer[10];
+			SYSTEMTIME sys; 
+			GetLocalTime( &sys );
+			CLabelUI* pLabel_Time = static_cast<CLabelUI*>(m_PaintManager.FindSubControlByName(selectItemNode->data().list_elment_, L"time"));
+			if(pLabel_Time)
+			{
+				swprintf(buffer,L"%02d:%02d",sys.wHour,sys.wMinute);
+				pLabel_Time->SetText(buffer);
+			}
 			//清空 输入内容
-			//pInputEdit->SetSel(0,-1);
-			//pInputEdit->Clear();
 			pInputEdit->SetFocus();
 			pInputEdit->SetText(L"");
 			SetTimer(m_hWnd,WM_MYMSG_01,80,NULL);
+			//消息提示
+			CButtonUI* pControl = static_cast<CButtonUI*>(m_PaintManager.FindSubControlByName(selectItemNode->data().list_elment_, L"MsgTip"));
+			if(!pControl->IsVisible()) 
+				pControl->SetVisible();
+			char buf[10];
+			WideCharToMultiByte(CP_ACP, 0, pControl->GetText().GetData(), -1, buf, 10, NULL, NULL);
+			int num = atoi(buf);
+			num++;
+			memset(buffer,0,sizeof(buffer));
+			swprintf(buffer,L"%d",num);
+			pControl->SetText(buffer);
+			AddMegTip(1);
+			//AddLastMsg(pInputEdit->GetText().GetData());
 		}
 		else
 			MessageBox(m_hWnd,L"不能发送空白消息",L"error",MB_OK);
-
-		//::SendMessage(*this,WM_MYMSG_01,0,0);
-		//pBubbleList->PageDown();
 	}
 }
 
@@ -622,8 +679,31 @@ LRESULT CMainFrame::On_TroyIcon(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& b
 			GetCursorPos(&point);
 			point.y = point.y - 165;
 			pMenu->Init(NULL, _T("menu_troy.xml"), point, &m_PaintManager,NULL);
+			break;
+		}
+	case WM_LBUTTONDOWN:
+		{
+			ShowWindow(SW_SHOWNORMAL);
+			break;
 		}
 	}
 	bHandled = FALSE;
 	return 0;
+}
+
+void CMainFrame::AddMegTip(int num)
+{
+	if(pButton_MsgTip)
+	{
+		pButton_MsgTip->SetVisible();
+		Msgcount += num;
+		TCHAR buffer[10];
+		swprintf(buffer,L"%d",Msgcount);
+		pButton_MsgTip->SetText(buffer);
+	}
+}
+
+void CMainFrame::AddLastMsg(LPCTSTR buffer)
+{
+
 }

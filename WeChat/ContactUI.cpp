@@ -14,6 +14,7 @@ CContactUI::CContactUI(CPaintManagerUI& paint_manager) : paint_manager_(paint_ma
 
 CContactUI::~CContactUI(void)
 {
+	RemoveAll();
 	if (root_node_)
 		delete root_node_;
 	root_node_ = NULL;

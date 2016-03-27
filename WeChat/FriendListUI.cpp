@@ -14,6 +14,7 @@ CFriendListUI::CFriendListUI(CPaintManagerUI& paint_manager) : paint_manager_(pa
 
 CFriendListUI::~CFriendListUI(void)
 {
+	RemoveAll();
 	if (root_node_)
 		delete root_node_;
 	root_node_ = NULL;
@@ -42,9 +43,7 @@ Node* CFriendListUI::AddNode(const FriendListItemInfo& item, Node* parent)
 	if( !m_dlgBuilder.GetMarkup()->IsValid() )
 		pListElement = static_cast<CListContainerElementUI*>(m_dlgBuilder.Create(L"friend_list.xml", (UINT)0, NULL, &paint_manager_));
 	else
-	{
 		pListElement = static_cast<CListContainerElementUI*>(m_dlgBuilder.Create((UINT)0, &paint_manager_));
-	}
 	if (pListElement == NULL)
 		return NULL;
 	

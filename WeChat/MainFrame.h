@@ -3,6 +3,7 @@
 #include "ContactUI.h"
 #include "BubbleChat.h"
 #include "DuiTrayIcon.h"
+#include "History.h"
 
 class CMainFrame : public WindowImplBase
 {
@@ -30,9 +31,15 @@ public:
 	void OnSelectContactList(TNotifyUI& msg, CContactUI* pFriendsList);
 	void OnSendMessage();
 	LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	void AddMegTip(int num);
+	void AddLastMsg(LPCTSTR buffer);
 private:
 	std::vector<FriendListItemInfo> friends_;
 	std::vector<ContactListItemInfo> contact_;
-	CDuiTrayIcon* icon;   //托盘菜单
+	CDuiTrayIcon* icon;				//托盘菜单
+	Node* selectItemNode;			//选中的列表项
+	int Msgcount;						//消息条数
+	CButtonUI* pButton_MsgTip;			//显示消息条数控件
+	CHistory*	m_history;
 };
 

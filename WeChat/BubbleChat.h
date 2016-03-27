@@ -16,6 +16,10 @@ namespace DuiLib
 	public:
 		enum {SCROLL_TIMERID = 10};
 		Node* AddNode(const BubbleItemInfo& item, Node* parent);
+		double GetTextWidth(const TCHAR *text);   //返回字符串的像素宽度
+		void RemoveAll();
+		bool RemoveNode(Node* node);			//删除节点
+		void DoEvent(TEventUI& event); 
 	private:
 		CDialogBuilder				m_dlgBuilder;
 		CPaintManagerUI&		paint_manager_;

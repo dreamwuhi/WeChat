@@ -77,4 +77,6 @@ void CSettingFrame::OnPrepare()
 	pButton_backup = static_cast<CButtonUI*>(m_PaintManager.FindControl(L"backup_set"));;
 	pButton_about = static_cast<CButtonUI*>(m_PaintManager.FindControl(L"about_set"));;
 	pTabLayout = static_cast<CTabLayoutUI*>(m_PaintManager.FindControl(L"default_bk"));
+
+	pButton_account->SetTextColor(0x3dce3d);  //默认选中账号设置
 }
