@@ -4,19 +4,20 @@
 #include "SettingFrame.h"
 
 #define WM_MYMSG_01    9999			//聊天窗口滚动条消息（目的：实现实时显示最后一条消息）
-#define WM_ICON	WM_USER + 1     //托盘消息
+#define WM_ICON	WM_USER + 1024     //托盘消息
 CMainFrame::CMainFrame(void)
 {
 	icon = NULL;
-	selectItemNode = NULL;
 	Msgcount = 0;						//消息条数
 	pButton_MsgTip = NULL;			//显示消息条数控件
 	m_history = new CHistory();
+	selectItemNode = NULL;
 }
 
 
 CMainFrame::~CMainFrame(void)
 {
+	m_history->SaveHisToLocal("../Debug/cached/001.txt");
 	if(icon)
 	{
 		delete icon;
@@ -49,9 +50,10 @@ void CMainFrame::OnPrepare()
 	icon = new CDuiTrayIcon();
 	icon->CreateTrayIcon(m_hWnd,/*IDI_WECHAT*/IDI_WE_CHAT,L"微信呵呵",WM_ICON);  //启动托盘
 	//icon->StartTwinkling();
+	pButton_MsgTip =  static_cast<CButtonUI*>(m_PaintManager.FindControl(L"Msg_Tip_Main"));
+	m_history->LoadHistoryFromLocal("../Debug/cached/001.txt");
 	UpgrateFriends();
 	UpgrateContacts();
-	pButton_MsgTip =  static_cast<CButtonUI*>(m_PaintManager.FindControl(L"Msg_Tip_Main"));
 }
  
 void CMainFrame::Notify(TNotifyUI& msg)
@@ -407,17 +409,22 @@ void CMainFrame::UpgrateFriends()    //最近联系人
 		item.logo = _T("c2.png");
 		item.id = LAST_CONTACT;
 		item.folder = false;
+		item.weixing_id = 001;
 		Node* root = pFriendsList->AddNode(item, NULL);		//添加根节点，返回自身节点（根）
 		friends_.push_back(item);
-
+		//添加缓存信息
+		AddCachMsg(root,item.weixing_id);
 		for (int i=0; i<1; ++i)
 		{
 			memset(&item,0,sizeof(FriendListItemInfo));
 			item.nick_name = _T("马化腾");
 			item.logo = _T("c2.png");
 			item.id = LAST_CONTACT;
-			pFriendsList->AddNode(item, NULL);		//添加根节点，返回自身节点（根）
+			item.weixing_id = 002;
+			root = pFriendsList->AddNode(item, NULL);		//添加根节点，返回自身节点（根）
 			friends_.push_back(item);
+			//添加缓存信息
+			AddCachMsg(root,item.weixing_id);
 		}
 	}
 }
@@ -451,7 +458,9 @@ void CMainFrame::OnSelectFriendList(TNotifyUI& msg, CFriendListUI* pFriendsList)
 	{
 		Node* node = (Node*)msg.pSender->GetTag();
 		if(node == NULL) return;
+		//selectNode.insert(node);
 		selectItemNode = node;
+		weixing_id = node->data().weixing_id;
 		CTabLayoutUI* pControl = static_cast<CTabLayoutUI*>(m_PaintManager.FindControl(_T("default_bk")));
 		if(pControl == NULL) return;
 
@@ -468,7 +477,7 @@ void CMainFrame::OnSelectFriendList(TNotifyUI& msg, CFriendListUI* pFriendsList)
 					if(pBubbleList->GetCount() > 0)
 						pBubbleList->RemoveAll();
 					//m_history->DeleteMsg();
-					m_history->UpdateHis(selectItemNode,pBubbleList);
+					m_history->LoadHistory(weixing_id,pBubbleList);   //加载该微信号的聊天记录
 				}
 			}
 		}
@@ -579,7 +588,11 @@ void CMainFrame::OnSendMessage()
 		if(wcslen(item.buf)>0)
 		{
 			//保存聊天记录
-			m_history->SaveHistory(selectItemNode,item.buf);
+			TCHAR buffer[50];
+			SYSTEMTIME sys; 
+			GetLocalTime( &sys );
+			swprintf(buffer,L"%04d-%02d-%02d-%02d:%02d",sys.wYear,sys.wMonth,sys.wDay,sys.wHour,sys.wMinute);
+			m_history->AddHistory(weixing_id,item.buf,buffer);
 			//............
 			pBubbleList->AddNode(item,NULL);
 			//添加缓存内容
@@ -587,8 +600,6 @@ void CMainFrame::OnSendMessage()
 			if(pLabel)
 				pLabel->SetText(pInputEdit->GetText().GetData());
 			//设置时间
-			TCHAR buffer[10];
-			SYSTEMTIME sys; 
 			GetLocalTime( &sys );
 			CLabelUI* pLabel_Time = static_cast<CLabelUI*>(m_PaintManager.FindSubControlByName(selectItemNode->data().list_elment_, L"time"));
 			if(pLabel_Time)
@@ -706,4 +717,56 @@ void CMainFrame::AddMegTip(int num)
 void CMainFrame::AddLastMsg(LPCTSTR buffer)
 {
 
+}
+
+void CMainFrame::AddCachMsg(Node* root, int id)
+{
+	MsgData* tmpBuffer = m_history->GetLastHistory(id);
+	if(tmpBuffer)
+	{
+		//添加最近消息
+		CLabelUI* pLabel = static_cast<CLabelUI*>(m_PaintManager.FindSubControlByName(root->data().list_elment_, L"Buffer_Text"));
+		if(pLabel && tmpBuffer->buffer)
+			pLabel->SetText(tmpBuffer->buffer);
+		//添加时间信息
+		SYSTEMTIME sys; 
+		GetLocalTime(&sys);
+		TCHAR curTime[50];
+		swprintf(curTime,L"%02d-%02d-%02d-%02d:%02d",sys.wYear,sys.wMonth,sys.wDay,sys.wHour,sys.wMinute);
+		int nLenPre = wcslen(tmpBuffer->time);
+		int nLenCur = wcslen(curTime);
+		CLabelUI* pLabel_Time = static_cast<CLabelUI*>(m_PaintManager.FindSubControlByName(root->data().list_elment_, L"time"));
+		if(pLabel_Time == NULL) 
+			return;
+		int i,j;
+		for (i=0,j=0; i<nLenPre && j<nLenCur; ++i,++j)
+		{
+			if(tmpBuffer->time[i] != curTime[j])
+			{
+				if(i<10)
+				{
+					if((tmpBuffer->time[8] == curTime[8] && tmpBuffer->time[9]+1 == curTime[9])
+						|| (tmpBuffer->time[8]=='3' && curTime[8] == '0' && tmpBuffer->time[9] == curTime[9]))
+					{
+						pLabel_Time->SetText(L"昨天");
+					}
+					else
+					{
+						tmpBuffer->time[10] = L'\0';
+						TCHAR buf[10] = {0};
+						wcscpy(buf,tmpBuffer->time+2);
+						pLabel_Time->SetText(buf);
+					}
+				}
+				break;
+			}
+		}
+		if(i == nLenPre || i>=10)
+		{
+			//同一天
+			TCHAR buf[10] = {0};
+			wcscpy(buf,tmpBuffer->time+11);
+			pLabel_Time->SetText(buf);
+		}
+	}
 }

@@ -9,8 +9,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 {
 	CPaintManagerUI::SetInstance(hInstance);
 
-	CPaintManagerUI::SetResourcePath(CPaintManagerUI::GetInstancePath());
-	CPaintManagerUI::SetResourceZip(_T("skin.dat"));
+// 	CPaintManagerUI::SetResourcePath(CPaintManagerUI::GetInstancePath());
+// 	CPaintManagerUI::SetResourceZip(_T("skin.dat"));
 
 	HRESULT Hr = ::CoInitialize(NULL);
 	if( FAILED(Hr) ) return 0;

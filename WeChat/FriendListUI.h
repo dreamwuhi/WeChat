@@ -10,6 +10,7 @@ struct FriendListItemInfo			//好友列表的信息 结构体
 	NodeType id;	
 	CDuiString logo;		//图标资源
 	CDuiString nick_name;	//昵称资源
+	int			weixing_id;
 	//CDuiString description;	//附加描述资源
 };
 

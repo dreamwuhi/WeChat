@@ -1,4 +1,5 @@
 #pragma once
+#include <set>
 #include "FriendListUI.h"
 #include "ContactUI.h"
 #include "BubbleChat.h"
@@ -33,11 +34,14 @@ public:
 	LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	void AddMegTip(int num);
 	void AddLastMsg(LPCTSTR buffer);
+	void AddCachMsg(Node* root, int id);
 private:
 	std::vector<FriendListItemInfo> friends_;
 	std::vector<ContactListItemInfo> contact_;
 	CDuiTrayIcon* icon;				//托盘菜单
-	Node* selectItemNode;			//选中的列表项
+	//std::set<Node*> selectNode;			//选中的列表项
+	Node* selectItemNode;
+	int weixing_id;
 	int Msgcount;						//消息条数
 	CButtonUI* pButton_MsgTip;			//显示消息条数控件
 	CHistory*	m_history;

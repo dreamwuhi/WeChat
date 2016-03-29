@@ -18,11 +18,12 @@ namespace DuiLib
 		bool folder_;
 		//bool child_visible_;
 		//bool has_child_;
-		CDuiString text_;
-		//CDuiString value;
+		CDuiString text_;				//Í«≥∆
+		//CDuiString value;    
 		NodeType  type_;
 		CListContainerElementUI* list_elment_;
 		UINT group_id;
+		int weixing_id;
 	};
 
 	double CalculateDelay(double state);

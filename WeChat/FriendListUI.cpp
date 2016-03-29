@@ -52,6 +52,7 @@ Node* CFriendListUI::AddNode(const FriendListItemInfo& item, Node* parent)
 	node->data().folder_ = item.folder;				//标记是否为根节点
 	node->data().text_ = item.nick_name;			//保存昵称资源
 	node->data().type_ = item.id;
+	node->data().weixing_id = item.weixing_id;
 
 	if(item.folder == false)
 	{
