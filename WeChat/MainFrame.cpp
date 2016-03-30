@@ -1,10 +1,13 @@
 #include "StdAfx.h"
 #include "MainFrame.h"
 #include "resource.h"
-#include "SettingFrame.h"
 
-#define WM_MYMSG_01    9999			//聊天窗口滚动条消息（目的：实现实时显示最后一条消息）
-#define WM_ICON	WM_USER + 1024     //托盘消息
+#define WM_RICH_SCROOL		WM_USER + 1025			//聊天窗口滚动条消息（目的：实现实时显示最后一条消息）
+#define WM_ICON					WM_USER + 1024			//托盘消息
+#define WM_RESTORE				WM_USER + 1026			//托盘菜单（设置）最小化复原
+#define WM_TOP						WM_USER + 1027			//托盘菜单（设置）激活顶层
+#define WM_CLOSE_ICON		WM_USER + 1028			//
+
 CMainFrame::CMainFrame(void)
 {
 	icon = NULL;
@@ -12,11 +15,21 @@ CMainFrame::CMainFrame(void)
 	pButton_MsgTip = NULL;			//显示消息条数控件
 	m_history = new CHistory();
 	selectItemNode = NULL;
+	b_msg = true;
+	isShow = false;
+	pMsgWnd = NULL;
+	settingFrame = NULL;
 }
 
 
 CMainFrame::~CMainFrame(void)
 {
+	if(pMsgWnd)
+	{
+		pMsgWnd->SetStatus(false);
+		delete pMsgWnd;
+		pMsgWnd = NULL;
+	}
 	m_history->SaveHisToLocal("../Debug/cached/001.txt");
 	if(icon)
 	{
@@ -64,18 +77,9 @@ void CMainFrame::Notify(TNotifyUI& msg)
 		if(SenderName == L"send")
 			OnSendMessage();
 		else if(SenderName == L"setting")  //点击主界面上的设置按钮
-		{
-			CSettingFrame *settingFrame =new CSettingFrame();
-			settingFrame->Create(NULL, _T(""), UI_WNDSTYLE_FRAME, WS_EX_WINDOWEDGE);
-			settingFrame->CenterWindow();
-			settingFrame->ShowModal();
-			delete settingFrame;
-			settingFrame = NULL;
-		}
+			OnSetting();
 		else if(SenderName == L"Closebtn")
-		{
 			ShowWindow(SW_HIDE);  //点击关闭最小化到托盘
-		}
 	}
 	else if(msg.sType == _T("windowinit"))
 	{
@@ -458,7 +462,6 @@ void CMainFrame::OnSelectFriendList(TNotifyUI& msg, CFriendListUI* pFriendsList)
 	{
 		Node* node = (Node*)msg.pSender->GetTag();
 		if(node == NULL) return;
-		//selectNode.insert(node);
 		selectItemNode = node;
 		weixing_id = node->data().weixing_id;
 		CTabLayoutUI* pControl = static_cast<CTabLayoutUI*>(m_PaintManager.FindControl(_T("default_bk")));
@@ -476,8 +479,8 @@ void CMainFrame::OnSelectFriendList(TNotifyUI& msg, CFriendListUI* pFriendsList)
 					int n = pBubbleList->GetCount();
 					if(pBubbleList->GetCount() > 0)
 						pBubbleList->RemoveAll();
-					//m_history->DeleteMsg();
 					m_history->LoadHistory(weixing_id,pBubbleList);   //加载该微信号的聊天记录
+					SetTimer(m_hWnd,WM_RICH_SCROOL,80,NULL);
 				}
 			}
 		}
@@ -610,7 +613,7 @@ void CMainFrame::OnSendMessage()
 			//清空 输入内容
 			pInputEdit->SetFocus();
 			pInputEdit->SetText(L"");
-			SetTimer(m_hWnd,WM_MYMSG_01,80,NULL);
+			SetTimer(m_hWnd,WM_RICH_SCROOL,80,NULL);
 			//消息提示
 			CButtonUI* pControl = static_cast<CButtonUI*>(m_PaintManager.FindSubControlByName(selectItemNode->data().list_elment_, L"MsgTip"));
 			if(!pControl->IsVisible()) 
@@ -623,7 +626,6 @@ void CMainFrame::OnSendMessage()
 			swprintf(buffer,L"%d",num);
 			pControl->SetText(buffer);
 			AddMegTip(1);
-			//AddLastMsg(pInputEdit->GetText().GetData());
 		}
 		else
 			MessageBox(m_hWnd,L"不能发送空白消息",L"error",MB_OK);
@@ -645,34 +647,51 @@ LRESULT CMainFrame::OnKeyReturn(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& b
 LRESULT CMainFrame::OnOwnTimer(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
 	CBubbleChat* pBubbleList = static_cast<CBubbleChat*>(m_PaintManager.FindControl(L"Bubble_Chat"));
-	if(wParam == WM_MYMSG_01 && pBubbleList)
+	if(wParam == WM_RICH_SCROOL && pBubbleList)
 	{
 		SIZE sz = pBubbleList->GetScrollPos();
 		int cy = pBubbleList->GetScrollRange().cy;
 		if(sz.cy == cy)
-			KillTimer(m_hWnd,WM_MYMSG_01);
+			KillTimer(m_hWnd,WM_RICH_SCROOL);
 		else
 		{
 			sz.cy = cy;
 			pBubbleList->SetScrollPos(sz);
 		}
 	}
+	else if(wParam == WM_RESTORE)
+	{
+		 CButtonUI* pButton = static_cast<CButtonUI*>(m_PaintManager.FindControl(L"setting"));
+		 m_PaintManager.SendNotify(pButton,DUI_MSGTYPE_CLICK);
+		 KillTimer(m_hWnd,WM_RESTORE);
+	}
+	else if(wParam == WM_TOP)
+	{
+		CButtonUI* pButton = static_cast<CButtonUI*>(m_PaintManager.FindControl(L"setting"));
+		m_PaintManager.SendNotify(pButton,DUI_MSGTYPE_CLICK);
+		KillTimer(m_hWnd,WM_TOP);
+	}
+	else if(wParam == WM_CLOSE_ICON)
+	{
+		if(isShow)
+			//pMsgWnd->SetStatus(false);//会弹不出 右键菜单(此问题，未解决)
+			pMsgWnd->ShowWindow(SW_HIDE);
+		KillTimer(m_hWnd,WM_CLOSE_ICON);
+	}
+
 	bHandled = FALSE;
 	return 1;
 }
 
-LRESULT CMainFrame::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+LRESULT CMainFrame::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) //菜单消息处理
 {
 	if (uMsg == WM_MENUCLICK)
 	{
-		int a = 1;
-// 		CButtonUI* pControl = static_cast<CButtonUI*>(m_PaintManager.FindControl(_T("setting_quit")));
  		CDuiString *strMenuName = (CDuiString*)wParam;
-// 		BOOL bChecked = (BOOL)lParam;	
  		if (*strMenuName == _T("quit")) 
- 		{
  			Close();
-		}
+		else if(*strMenuName == L"setting")
+			OnSetting(true);
  		delete strMenuName;
 	}
 	bHandled = FALSE;
@@ -683,6 +702,32 @@ LRESULT CMainFrame::On_TroyIcon(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& b
 {
 	switch(lParam)
 	{
+	case WM_MOUSEMOVE:
+		{
+			if(b_msg && !isShow)//有消息且托盘窗口还未创建//显示托盘消息提示
+			{
+				NOTIFYICONIDENTIFIER identifier = {0};
+				identifier.cbSize = sizeof(NOTIFYICONIDENTIFIER);
+				identifier.hWnd = m_hWnd;
+				identifier.uID = IDI_WE_CHAT;
+				RECT iconRect;
+				Shell_NotifyIconGetRect(&identifier,&iconRect);
+				int icon_Width = iconRect.right - iconRect.left;
+				int wnd_CX = iconRect.left - (222 - icon_Width) / 2;
+				int wnd_CY = iconRect.top - 115;
+				pMsgWnd =new CMessageWnd(iconRect);
+				pMsgWnd->Create(NULL, _T(""), UI_WNDSTYLE_FRAME, WS_EX_WINDOWEDGE |WS_EX_TOPMOST | WS_EX_TOOLWINDOW);
+				SetWindowPos(pMsgWnd->GetHWND(),HWND_TOP,wnd_CX,wnd_CY,222,115,true);
+				isShow = true;
+				pMsgWnd->ShowModal();
+				//窗口关闭
+				delete pMsgWnd;
+				pMsgWnd = NULL;
+				isShow = false;
+				b_msg = false;
+			}
+			break;
+		}
 	case WM_RBUTTONDOWN:
 		{
 			CMenuWnd* pMenu = new CMenuWnd();   //不清楚 什么时候 释放内存的
@@ -690,11 +735,31 @@ LRESULT CMainFrame::On_TroyIcon(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& b
 			GetCursorPos(&point);
 			point.y = point.y - 165;
 			pMenu->Init(NULL, _T("menu_troy.xml"), point, &m_PaintManager,NULL);
+			//..............................
+			if(isShow)//也没用，右键菜单会随着其他窗口的关闭而消失
+				SetTimer(m_hWnd,WM_CLOSE_ICON,120,NULL);
 			break;
+			//先关闭托盘窗口
+ 			/*if(isShow)
+				pMsgWnd->SetStatus(false);//会弹不出 右键菜单(此问题，未解决)
+			break;*/
 		}
 	case WM_LBUTTONDOWN:
 		{
-			ShowWindow(SW_SHOWNORMAL);
+			if(!IsWindowVisible(m_hWnd)) //判断窗口是否可见（即任务栏上是否有相应图标）
+				ShowWindow(SW_SHOWNORMAL);
+			else if(IsIconic(m_hWnd))
+				::ShowWindow(m_hWnd,SW_RESTORE);
+			else
+				::SetForegroundWindow(m_hWnd);
+			//先关闭托盘窗口
+			if(isShow)
+				pMsgWnd->SetStatus(false);//会弹不出 右键菜单
+			break;
+		}
+	default:
+		{
+			INT A = 1;
 			break;
 		}
 	}
@@ -746,7 +811,9 @@ void CMainFrame::AddCachMsg(Node* root, int id)
 				if(i<10)
 				{
 					if((tmpBuffer->time[8] == curTime[8] && tmpBuffer->time[9]+1 == curTime[9])
-						|| (tmpBuffer->time[8]=='3' && curTime[8] == '0' && tmpBuffer->time[9] == curTime[9]))
+						|| (tmpBuffer->time[8]=='3' && curTime[8] == '0' && tmpBuffer->time[9] == curTime[9])
+						|| (tmpBuffer->time[8]+1 == curTime[8] && tmpBuffer->time[9] == curTime[9]+9)
+						|| (tmpBuffer->time[8]=='3' && curTime[8] == '0' && tmpBuffer->time[9]+1 == curTime[9]))
 					{
 						pLabel_Time->SetText(L"昨天");
 					}
@@ -768,5 +835,34 @@ void CMainFrame::AddCachMsg(Node* root, int id)
 			wcscpy(buf,tmpBuffer->time+11);
 			pLabel_Time->SetText(buf);
 		}
+	}
+}
+
+void CMainFrame::OnSetting(bool flag)
+{
+	if(!settingFrame)
+	{
+		settingFrame =new CSettingFrame();
+		settingFrame->Create(NULL, _T(""), UI_WNDSTYLE_FRAME, WS_EX_WINDOWEDGE);
+		settingFrame->CenterWindow();
+		settingFrame->SetIcon(IDI_WE_CHAT);
+		settingFrame->ShowModal();
+		delete settingFrame;
+		settingFrame = NULL;
+		return;
+	}
+	if(flag)
+	{
+		if(IsIconic(settingFrame->GetHWND()))
+			SetTimer(m_hWnd,WM_RESTORE,100,NULL);
+		else
+			SetTimer(m_hWnd,WM_TOP,100,NULL);
+	}
+	else
+	{
+		if(IsIconic(settingFrame->GetHWND()))
+			::ShowWindow(settingFrame->GetHWND(),SW_RESTORE);
+		else
+			::SetForegroundWindow(settingFrame->GetHWND());
 	}
 }

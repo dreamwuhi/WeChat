@@ -61,6 +61,42 @@ void CSettingFrame::Notify(TNotifyUI& msg)
 				pTabLayout->SelectItem(1);
 			}
 		}
+		else if(SenderName == L"shortcut_set")
+		{
+			pButton_account->SetTextColor(0);
+			pButton_generic->SetTextColor(0);
+			pButton_shortcut->SetTextColor(0x3dce3d);
+			pButton_backup->SetTextColor(0);
+			pButton_about->SetTextColor(0);
+			if(pTabLayout)
+			{
+				pTabLayout->SelectItem(2);
+			}
+		}
+		else if(SenderName == L"backup_set")
+		{
+			pButton_account->SetTextColor(0);
+			pButton_generic->SetTextColor(0);
+			pButton_shortcut->SetTextColor(0);
+			pButton_backup->SetTextColor(0x3dce3d);
+			pButton_about->SetTextColor(0);
+			if(pTabLayout)
+			{
+				pTabLayout->SelectItem(3);
+			}
+		}
+		else if(SenderName == L"about_set")
+		{
+			pButton_account->SetTextColor(0);
+			pButton_generic->SetTextColor(0);
+			pButton_shortcut->SetTextColor(0);
+			pButton_backup->SetTextColor(0);
+			pButton_about->SetTextColor(0x3dce3d);
+			if(pTabLayout)
+			{
+				pTabLayout->SelectItem(4);
+			}
+		}
 	}
 	else if(msg.sType == _T("windowinit"))
 	{

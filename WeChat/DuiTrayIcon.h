@@ -34,6 +34,7 @@ namespace DuiLib
 		bool IsVisible(){return !m_bVisible;};
 		bool IsTwinkling(){return m_bTwinkling;};
 
+
 		//void OnTimer(IDuiTimer* pTimer);
 	private:
 		bool m_bEnabled;

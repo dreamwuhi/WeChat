@@ -5,6 +5,8 @@
 #include "BubbleChat.h"
 #include "DuiTrayIcon.h"
 #include "History.h"
+#include "MessageWnd.h"
+#include "SettingFrame.h"
 
 class CMainFrame : public WindowImplBase
 {
@@ -35,6 +37,7 @@ public:
 	void AddMegTip(int num);
 	void AddLastMsg(LPCTSTR buffer);
 	void AddCachMsg(Node* root, int id);
+	void OnSetting(bool flag=0);
 private:
 	std::vector<FriendListItemInfo> friends_;
 	std::vector<ContactListItemInfo> contact_;
@@ -45,5 +48,9 @@ private:
 	int Msgcount;						//消息条数
 	CButtonUI* pButton_MsgTip;			//显示消息条数控件
 	CHistory*	m_history;
+	bool b_msg;
+	bool isShow;
+	CMessageWnd *pMsgWnd; //托盘消息窗口
+	CSettingFrame *settingFrame; // 设置窗口 
 };
 
