@@ -34,7 +34,7 @@ static bool OnLogoButtonEvent(void* event)
 	return true;
 }
 
-Node* CFriendListUI::AddNode(const FriendListItemInfo& item, Node* parent)
+Node* CFriendListUI::AddNode(const FriendListItemInfo& item, Node* parent , int insertIndex)
 {
 	if(parent == NULL)
 		parent = root_node_;
@@ -53,6 +53,7 @@ Node* CFriendListUI::AddNode(const FriendListItemInfo& item, Node* parent)
 	node->data().text_ = item.nick_name;			//保存昵称资源
 	node->data().type_ = item.id;
 	node->data().weixing_id = item.weixing_id;
+	node->data().logo = item.logo;
 
 	if(item.folder == false)
 	{
@@ -109,7 +110,7 @@ Node* CFriendListUI::AddNode(const FriendListItemInfo& item, Node* parent)
 		else
 			index = parent->data().list_elment_->GetIndex()+1;
 	}
-	bool ret = CListUI::AddAt(pListElement, index);
+	bool ret = CListUI::AddAt(pListElement, insertIndex==-1 ? index : insertIndex);
 	if(ret == false)
 	{
 		delete pListElement;
@@ -191,7 +192,7 @@ void CFriendListUI::DoEvent(TEventUI& event)
 void CFriendListUI::RemoveAll()
 {
 	CListUI::RemoveAll();
-	for (int i=0; i<root_node_->num_children(); ++i)
+	for (int i=0; i<root_node_->num_children(); )
 	{
 		Node* child = root_node_->child(i);
 		RemoveNode(child);
@@ -216,11 +217,18 @@ bool CFriendListUI::RemoveNode(Node* node)
 	}
 
 	CListUI::Remove(node->data().list_elment_);
+
 	node->parent()->remove_child(node);
 	delete node;
 	node = NULL;
 	return true;
 }
+
+Node* CFriendListUI::GetRoot()
+{
+	return root_node_;
+}
+
 // bool CFriendListUI::SelectItem(int iIndex, bool bTakeFocus)   //列表行 根据 是否是当前选中行 显示不同的状态	
 // {
 // 	if( iIndex == m_iCurSel ) return true;

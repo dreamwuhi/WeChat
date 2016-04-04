@@ -44,8 +44,6 @@ namespace DuiLib
 
 		Shell_NotifyIcon(NIM_ADD,&m_trayData);
 		m_bEnabled = true;
-
-
 	}
 
 	void CDuiTrayIcon::DeleteTrayIcon()

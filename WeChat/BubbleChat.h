@@ -7,6 +7,7 @@ namespace DuiLib
 	{
 		//NodeType		id;	
 		TCHAR buf[MAX_PATH];
+		CDuiString logo;
 	};
 	class CBubbleChat : public CListUI
 	{
@@ -20,6 +21,7 @@ namespace DuiLib
 		void RemoveAll();
 		bool RemoveNode(Node* node);			//É¾³ý½Úµã
 		void DoEvent(TEventUI& event); 
+		Node* GetRoot();
 	private:
 		CDialogBuilder				m_dlgBuilder;
 		CPaintManagerUI&		paint_manager_;

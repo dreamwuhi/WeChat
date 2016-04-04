@@ -82,6 +82,9 @@ Node* DuiLib::CBubbleChat::AddNode(const BubbleItemInfo& item, Node* parent)
 		else
 			index = parent->data().list_elment_->GetIndex()+1;
 	}
+
+	pListElement->SetTag((UINT_PTR)node);
+
 	bool ret = CListUI::AddAt(pListElement, index);
 	if(ret == false)
 	{
@@ -251,7 +254,7 @@ double DuiLib::CBubbleChat::GetTextWidth(const TCHAR *text)
 void DuiLib::CBubbleChat::RemoveAll()
 {
 	CListUI::RemoveAll();
-	for (int i=0; i<root_node_->num_children(); ++i)
+	for (int i=0; i<root_node_->num_children();	)
 	{
 		Node* child = root_node_->child(i);
 		RemoveNode(child);
@@ -273,22 +276,32 @@ bool DuiLib::CBubbleChat::RemoveNode(Node* node)
 	}
 
 	CListUI::Remove(node->data().list_elment_);
+// 	if(node->data().list_elment_)
+// 	{
+// 		delete node->data().list_elment_;
+// 		node->data().list_elment_ = NULL;
+// 	}
 	node->parent()->remove_child(node);
 	delete node;
 	node = NULL;
 	return true;
 }
 
+Node* DuiLib::CBubbleChat::GetRoot()
+{
+	return root_node_;
+}
+
 void CBubbleChat::DoEvent(TEventUI& event) 
 {
-	// 	if (!IsMouseEnabled() && event.Type > UIEVENT__MOUSEBEGIN && event.Type < UIEVENT__MOUSEEND)
-	// 	{
-	// 		if (m_pParent != NULL)
-	// 			m_pParent->DoEvent(event);
-	// 		else
-	// 			CVerticalLayoutUI::DoEvent(event);
-	// 		return;
-	// 	}
+	if (!IsMouseEnabled() && event.Type > UIEVENT__MOUSEBEGIN && event.Type < UIEVENT__MOUSEEND)
+ 	{
+	 		if (m_pParent != NULL)
+	 			m_pParent->DoEvent(event);
+	 		else
+	 			CVerticalLayoutUI::DoEvent(event);
+	 		return;
+	 }
 	if( event.Type == UIEVENT_MOUSEENTER )
 	{
 		int a = 1;
@@ -343,6 +356,5 @@ void CBubbleChat::DoEvent(TEventUI& event)
 		m_pManager->SetTimer(this, SCROLL_TIMERID, 20U);
 		return;
 	}
-
 	CListUI::DoEvent(event);
 }

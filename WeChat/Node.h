@@ -24,6 +24,7 @@ namespace DuiLib
 		CListContainerElementUI* list_elment_;
 		UINT group_id;
 		int weixing_id;
+		CDuiString logo;//Í·ÏñµÄÂ·¾¶
 	};
 
 	double CalculateDelay(double state);

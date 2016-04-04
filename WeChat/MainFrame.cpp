@@ -2,35 +2,24 @@
 #include "MainFrame.h"
 #include "resource.h"
 
-#define WM_RICH_SCROOL		WM_USER + 1025			//聊天窗口滚动条消息（目的：实现实时显示最后一条消息）
-#define WM_ICON					WM_USER + 1024			//托盘消息
-#define WM_RESTORE				WM_USER + 1026			//托盘菜单（设置）最小化复原
-#define WM_TOP						WM_USER + 1027			//托盘菜单（设置）激活顶层
-#define WM_CLOSE_ICON		WM_USER + 1028			//
-
-CMainFrame::CMainFrame(void)
+#define WM_RICH_SCROOL			WM_USER + 1025			//聊天窗口滚动条消息（目的：实现实时显示最后一条消息）
+#define WM_ICON						WM_USER + 1024			//托盘消息
+#define WM_RESTORE					WM_USER + 1026			//托盘菜单（设置）最小化复原
+#define WM_TOP							WM_USER + 1027			//托盘菜单（设置）激活顶层
+#define WM_CLOSE_ICON			WM_USER + 1028			//........
+#define WM_CURSOR					WM_USER + 1029
+#define WM_FRIENDLIST_SCROLL WM_USER + 1030
+CMainFrame::CMainFrame(void) : icon(NULL),Msgcount(0),pButton_MsgTip(NULL),selectItemNode_Fri(NULL),selectItemNode_Con(NULL)
+	,pMsgWnd(NULL),settingFrame(NULL),pOptionChat(NULL),pTabs(NULL),pChatName(NULL),b_msg(true),isShow(false)
 {
-	icon = NULL;
-	Msgcount = 0;						//消息条数
-	pButton_MsgTip = NULL;			//显示消息条数控件
 	m_history = new CHistory();
-	selectItemNode = NULL;
-	b_msg = true;
-	isShow = false;
-	pMsgWnd = NULL;
-	settingFrame = NULL;
+	icon = new CDuiTrayIcon();
 }
 
 
 CMainFrame::~CMainFrame(void)
 {
-	if(pMsgWnd)
-	{
-		pMsgWnd->SetStatus(false);
-		delete pMsgWnd;
-		pMsgWnd = NULL;
-	}
-	m_history->SaveHisToLocal("../Debug/cached/001.txt");
+	m_history->SaveHisToLocal("../Debug/cached/001.txt");  //保存聊天记录
 	if(icon)
 	{
 		delete icon;
@@ -60,11 +49,23 @@ DuiLib::CDuiString CMainFrame::GetSkinFolder()
 
 void CMainFrame::OnPrepare()
 {
-	icon = new CDuiTrayIcon();
-	icon->CreateTrayIcon(m_hWnd,/*IDI_WECHAT*/IDI_WE_CHAT,L"微信呵呵",WM_ICON);  //启动托盘
-	//icon->StartTwinkling();
 	pButton_MsgTip =  static_cast<CButtonUI*>(m_PaintManager.FindControl(L"Msg_Tip_Main"));
-	m_history->LoadHistoryFromLocal("../Debug/cached/001.txt");
+	pTabLayout = static_cast<CTabLayoutUI*>(m_PaintManager.FindControl(_T("default_bk")));
+	pFriendsList = static_cast<CFriendListUI*>(m_PaintManager.FindControl(L"friends"));
+	pContactsList = static_cast<CContactUI*>(m_PaintManager.FindControl(L"contacts"));
+	m_group_list = static_cast<CTileLayoutUI*>(m_PaintManager.FindControl(L"group_list"));
+	pBubbleList = static_cast<CBubbleChat*>(m_PaintManager.FindControl(L"Bubble_Chat"));
+	pInputEdit = static_cast<CRichEditUI*>(m_PaintManager.FindControl(L"input_edit"));
+	pButtonSet = static_cast<CButtonUI*>(m_PaintManager.FindControl(L"setting"));
+	pOptionChat = static_cast<COptionUI*>(m_PaintManager.FindControl(L"chat"));
+	pTabs = static_cast<CTabLayoutUI*>(m_PaintManager.FindControl(_T("tabs")));
+	pChatName = static_cast<CLabelUI*>(m_PaintManager.FindControl(_T("chat_name")));
+
+	if(icon)
+		icon->CreateTrayIcon(m_hWnd,IDI_WE_CHAT,L"微信呵呵",WM_ICON);  //启动托盘
+	if(m_history)
+		m_history->LoadHistoryFromLocal("../Debug/cached/001.txt");
+
 	UpgrateFriends();
 	UpgrateContacts();
 }
@@ -72,14 +73,32 @@ void CMainFrame::OnPrepare()
 void CMainFrame::Notify(TNotifyUI& msg)
 {
 	CDuiString SenderName = msg.pSender->GetName();
-	if(msg.sType == _T("click"))				//按钮点击事件
+	if(msg.sType == _T("click"))							//按钮点击事件
 	{
 		if(SenderName == L"send")
 			OnSendMessage();
-		else if(SenderName == L"setting")  //点击主界面上的设置按钮
+		else if(SenderName == L"setting")			//点击主界面上的设置按钮
 			OnSetting();
 		else if(SenderName == L"Closebtn")
-			ShowWindow(SW_HIDE);  //点击关闭最小化到托盘
+			ShowWindow(SW_HIDE);						//点击关闭最小化到托盘
+		else if(SenderName == L"sendMsg")
+			OnBegChat(msg);
+		else if(SenderName == L"chat")
+		{
+			if(selectItemNode_Fri)
+				m_PaintManager.SendNotify(selectItemNode_Fri->data().list_elment_,DUI_MSGTYPE_ITEMCLICK);
+			else
+				pTabLayout->SelectItem(0);
+			pTabs->SelectItem(0);
+		}
+		else if(SenderName = L"contact")
+		{
+			if(selectItemNode_Con)
+				m_PaintManager.SendNotify(selectItemNode_Con->data().list_elment_,DUI_MSGTYPE_ITEMCLICK);
+			else
+				pTabLayout->SelectItem(0);
+			pTabs->SelectItem(1);
+		}
 	}
 	else if(msg.sType == _T("windowinit"))
 	{
@@ -87,13 +106,19 @@ void CMainFrame::Notify(TNotifyUI& msg)
 	}
 	else if(msg.sType  == _T("itemclick"))
 	{
-		CFriendListUI* pFriendsList = static_cast<CFriendListUI*>(m_PaintManager.FindControl(L"friends"));
 		if(pFriendsList != NULL && pFriendsList->GetItemIndex(msg.pSender) != -1)
 			OnSelectFriendList(msg, pFriendsList);
 
-		CContactUI* pContactsList = static_cast<CContactUI*>(m_PaintManager.FindControl(L"contacts"));
 		if(pContactsList != NULL && pContactsList->GetItemIndex(msg.pSender) != -1)
-			OnSelectContactList(msg, pContactsList);
+		 	OnSelectContactList(msg, pContactsList);
+		if(pBubbleList != NULL && pBubbleList->GetItemIndex(msg.pSender) != -1)
+		{
+			Node* node = (Node*)msg.pSender->GetTag();
+			if(node)
+			{
+				node->data().list_elment_->Select();
+			}
+		}
 	}
 	__super::Notify(msg);
 }
@@ -190,11 +215,12 @@ CControlUI* CMainFrame::CreateControl(LPCTSTR pstrClass)
 
 void CMainFrame::UpgrateContacts()
 {
-	CContactUI* pContactsList = static_cast<CContactUI*>(m_PaintManager.FindControl(L"contacts"));
 	if(pContactsList != NULL)
 	{
 		if (!contact_.empty())					//清空 列表（群+公众号+好友）
 			contact_.clear();
+		if(pContactsList->GetCount() > 0)
+			pContactsList->RemoveAll();
 
 		ContactListItemInfo item={0};
 		item.nick_name = _T("公众号");
@@ -268,6 +294,7 @@ void CMainFrame::UpgrateContacts()
 		item.back_name = L"草哥";
 		item.weixin_id = L"zhe5960";
 		item.zone = L"浙江 杭州";
+		item.ID = 2;
 		item.group_id = 1;		//1号群
 		item.folder = false;
 		item.id = FRIENDS;
@@ -281,6 +308,7 @@ void CMainFrame::UpgrateContacts()
 		item.back_name = L"";
 		item.weixin_id = L"czllry";
 		item.zone = L"浙江 杭州";
+		item.ID = 4;
 		item.group_id = 1;		//1号群
 		item.folder = false;
 		item.id = FRIENDS;
@@ -292,6 +320,7 @@ void CMainFrame::UpgrateContacts()
 		item.logo = _T("c3.png");
 		item.description = L"";
 		item.back_name = L"程方";
+		item.ID = 5;
 		item.group_id = 2;		//1号群
 		item.weixin_id = L"";
 		item.zone = L"浙江 舟山";
@@ -303,6 +332,7 @@ void CMainFrame::UpgrateContacts()
 		memset(&item,0,sizeof(ContactListItemInfo));
 		item.nick_name = _T("程强");
 		item.description = L"合适才是最好";
+		item.ID = 6;
 		item.group_id = 2;		//1号群
 		item.back_name = L"";
 		item.weixin_id = L"cq_52apple1314";
@@ -317,6 +347,7 @@ void CMainFrame::UpgrateContacts()
 		item.nick_name = _T("玉麒麟qs杰");
 		item.description = L"情菲 得意";
 		item.back_name = L"陈杰";
+		item.ID = 7;
 		item.group_id = 3;		//1号群
 		item.weixin_id = L"qinshoujie";
 		item.zone = L"浙江 舟山";
@@ -333,7 +364,7 @@ void CMainFrame::UpgrateContacts()
 		Node* root_parent3 = pContactsList->AddNode(item, NULL);		//添加根节点，返回自身节点（根）
 		contact_.push_back(item);
 
-		for (int i=0; i<5; ++i)
+		/*for (int i=0; i<5; ++i)
 		{
 			item.nick_name = _T("陈哲");
 			item.logo = _T("c1.png");
@@ -343,7 +374,7 @@ void CMainFrame::UpgrateContacts()
 			item.weixin_id = L"zhe5960";
 			item.zone = L"浙江 杭州";
 			item.folder = false;
-			item.id = FRIENDS;
+			item.id = FRIENDS;//节点类型
 			pContactsList->AddNode(item, root_parent3);		//添加根节点，返回自身节点（根）
 			contact_.push_back(item);
 
@@ -394,13 +425,12 @@ void CMainFrame::UpgrateContacts()
 			item.id = FRIENDS;
 			pContactsList->AddNode(item, root_parent3);		//添加根节点，返回自身节点（根）
 			contact_.push_back(item);
-		}
+		}*/
 	}
 }
 
 void CMainFrame::UpgrateFriends()    //最近联系人
 {
-	CFriendListUI* pFriendsList = static_cast<CFriendListUI*>(m_PaintManager.FindControl(L"friends"));
 	if(pFriendsList != NULL)
 	{
 		if (!friends_.empty())					//清空 最近联系列表
@@ -416,20 +446,61 @@ void CMainFrame::UpgrateFriends()    //最近联系人
 		item.weixing_id = 001;
 		Node* root = pFriendsList->AddNode(item, NULL);		//添加根节点，返回自身节点（根）
 		friends_.push_back(item);
+		friendsNode.push_back(root);
 		//添加缓存信息
 		AddCachMsg(root,item.weixing_id);
-		for (int i=0; i<1; ++i)
+
+		memset(&item,0,sizeof(FriendListItemInfo));
+		item.nick_name = _T("草哥");
+		item.logo = _T("c1.png");
+		item.id = LAST_CONTACT;
+		item.folder = false;
+		item.weixing_id = 002;
+		root = pFriendsList->AddNode(item, NULL);		//添加根节点，返回自身节点（根）
+		friends_.push_back(item);
+		friendsNode.push_back(root);
+		//添加缓存信息
+		AddCachMsg(root,item.weixing_id);
+
+		for (size_t i=0 ;i<10; ++i)
 		{
 			memset(&item,0,sizeof(FriendListItemInfo));
-			item.nick_name = _T("马化腾");
-			item.logo = _T("c2.png");
+			item.nick_name = _T("路人甲");
+			item.logo = _T("c5.png");
 			item.id = LAST_CONTACT;
-			item.weixing_id = 002;
+			item.folder = false;
+			item.weixing_id = 012;
 			root = pFriendsList->AddNode(item, NULL);		//添加根节点，返回自身节点（根）
 			friends_.push_back(item);
+			friendsNode.push_back(root);
 			//添加缓存信息
 			AddCachMsg(root,item.weixing_id);
 		}
+		memset(&item,0,sizeof(FriendListItemInfo));
+		item.nick_name = _T("程方");
+		item.logo = _T("c3.png");
+		item.id = LAST_CONTACT;
+		item.folder = false;
+		item.weixing_id = 005;
+		root = pFriendsList->AddNode(item, NULL);		//添加根节点，返回自身节点（根）
+		friends_.push_back(item);
+		friendsNode.push_back(root);
+		//添加缓存信息
+		AddCachMsg(root,item.weixing_id);
+		for (size_t i=0 ;i<4; ++i)
+		{
+			memset(&item,0,sizeof(FriendListItemInfo));
+			item.nick_name = _T("路人甲");
+			item.logo = _T("c5.png");
+			item.id = LAST_CONTACT;
+			item.folder = false;
+			item.weixing_id = 012;
+			root = pFriendsList->AddNode(item, NULL);		//添加根节点，返回自身节点（根）
+			friends_.push_back(item);
+			friendsNode.push_back(root);
+			//添加缓存信息
+			AddCachMsg(root,item.weixing_id);
+		} 
 	}
 }
 
@@ -462,26 +533,29 @@ void CMainFrame::OnSelectFriendList(TNotifyUI& msg, CFriendListUI* pFriendsList)
 	{
 		Node* node = (Node*)msg.pSender->GetTag();
 		if(node == NULL) return;
-		selectItemNode = node;
+		selectItemNode_Fri = node;
 		weixing_id = node->data().weixing_id;
-		CTabLayoutUI* pControl = static_cast<CTabLayoutUI*>(m_PaintManager.FindControl(_T("default_bk")));
-		if(pControl == NULL) return;
-
+		if(pTabLayout == NULL) return;
 		if(node->data().type_ == LAST_CONTACT)			//最近联系人
 		{
-			CTileLayoutUI* m_group_list = static_cast<CTileLayoutUI*>(m_PaintManager.FindControl(L"group_list"));	
 			if(m_group_list)
 			{
-				pControl->SelectItem(3);
-				CBubbleChat* pBubbleList = static_cast<CBubbleChat*>(m_PaintManager.FindControl(L"Bubble_Chat"));
+				//设置选中（从托盘消息过来，自动选中）
+				if(!node->data().list_elment_->IsSelected())
+					node->data().list_elment_->Select();
 				if(pBubbleList != NULL)
 				{
-					int n = pBubbleList->GetCount();
+					//int n = pBubbleList->GetCount();
 					if(pBubbleList->GetCount() > 0)
 						pBubbleList->RemoveAll();
 					m_history->LoadHistory(weixing_id,pBubbleList);   //加载该微信号的聊天记录
-					SetTimer(m_hWnd,WM_RICH_SCROOL,80,NULL);
+// 					SIZE sz = pBubbleList->GetScrollPos();
+// 					int cy = pBubbleList->GetScrollRange().cy;
+					//SetTimer(m_hWnd,WM_RICH_SCROOL,50,NULL);
 				}
+				SetTimer(m_hWnd,WM_CURSOR,50,NULL);
+				pChatName->SetText(selectItemNode_Fri->data().text_);
+				pTabLayout->SelectItem(3);
 			}
 		}
 	}
@@ -492,13 +566,11 @@ void CMainFrame::OnSelectContactList(TNotifyUI& msg, CContactUI* pFriendsList)
 	if (_tcsicmp(msg.pSender->GetClass(), _T("ListContainerElementUI")) == 0)
 	{
 		Node* node = (Node*)msg.pSender->GetTag();
+ 		selectItemNode_Con = node;
 		if(node == NULL) return;
-		CTabLayoutUI* pControl = static_cast<CTabLayoutUI*>(m_PaintManager.FindControl(_T("default_bk")));
-		if(pControl == NULL) return;
-
+		if(pTabLayout == NULL) return;
 		if(node->data().type_ == GROUP_CHAT)				//选择了群聊
 		{
-			CTileLayoutUI* m_group_list = static_cast<CTileLayoutUI*>(m_PaintManager.FindControl(L"group_list"));			
 			if(m_group_list)
 			{
 				static std::vector<CButtonUI*> vec;
@@ -527,12 +599,11 @@ void CMainFrame::OnSelectContactList(TNotifyUI& msg, CContactUI* pFriendsList)
 					}
 				}
 			}
-			pControl->SelectItem(2);
+			pTabLayout->SelectItem(2);
 		}
 		else if(node->data().type_ == PUBLIC_NO)		//选择了公众号
 		{
-			//icon->StopTwinkling();
-			pControl->SelectItem(0);
+			pTabLayout->SelectItem(0);
 		}
 		else if(node->data().type_ == FRIENDS)			//选择了好友
 		{
@@ -571,19 +642,18 @@ void CMainFrame::OnSelectContactList(TNotifyUI& msg, CContactUI* pFriendsList)
 				}
 				m_zone->SetText(item->zone);
 			}
-			pControl->SelectItem(1);
+			pTabLayout->SelectItem(1);
 		}
 	}
 }
 
 void CMainFrame::OnSendMessage()
 {
+	//当前聊天对象，插入到friendList的首部
+	AddNodeToFriendList();
 	//聊天窗口添加文字
-	CBubbleChat* pBubbleList = static_cast<CBubbleChat*>(m_PaintManager.FindControl(L"Bubble_Chat"));
-	//pBubbleList->SetHwnd(m_hWnd);
 	BubbleItemInfo item;
 	memset(&item,0,sizeof(BubbleItemInfo));
-	CRichEditUI* pInputEdit = static_cast<CRichEditUI*>(m_PaintManager.FindControl(L"input_edit"));
 	if(pBubbleList)
 	{	
 		memset(item.buf,0,MAX_PATH);
@@ -596,15 +666,15 @@ void CMainFrame::OnSendMessage()
 			GetLocalTime( &sys );
 			swprintf(buffer,L"%04d-%02d-%02d-%02d:%02d",sys.wYear,sys.wMonth,sys.wDay,sys.wHour,sys.wMinute);
 			m_history->AddHistory(weixing_id,item.buf,buffer);
-			//............
+			//聊天窗口插入最新的信息
 			pBubbleList->AddNode(item,NULL);
 			//添加缓存内容
-			CLabelUI* pLabel = static_cast<CLabelUI*>(m_PaintManager.FindSubControlByName(selectItemNode->data().list_elment_, L"Buffer_Text"));
+			CLabelUI* pLabel = static_cast<CLabelUI*>(m_PaintManager.FindSubControlByName(selectItemNode_Fri->data().list_elment_, L"Buffer_Text"));
 			if(pLabel)
 				pLabel->SetText(pInputEdit->GetText().GetData());
 			//设置时间
 			GetLocalTime( &sys );
-			CLabelUI* pLabel_Time = static_cast<CLabelUI*>(m_PaintManager.FindSubControlByName(selectItemNode->data().list_elment_, L"time"));
+			CLabelUI* pLabel_Time = static_cast<CLabelUI*>(m_PaintManager.FindSubControlByName(selectItemNode_Fri->data().list_elment_, L"time"));
 			if(pLabel_Time)
 			{
 				swprintf(buffer,L"%02d:%02d",sys.wHour,sys.wMinute);
@@ -614,18 +684,8 @@ void CMainFrame::OnSendMessage()
 			pInputEdit->SetFocus();
 			pInputEdit->SetText(L"");
 			SetTimer(m_hWnd,WM_RICH_SCROOL,80,NULL);
-			//消息提示
-			CButtonUI* pControl = static_cast<CButtonUI*>(m_PaintManager.FindSubControlByName(selectItemNode->data().list_elment_, L"MsgTip"));
-			if(!pControl->IsVisible()) 
-				pControl->SetVisible();
-			char buf[10];
-			WideCharToMultiByte(CP_ACP, 0, pControl->GetText().GetData(), -1, buf, 10, NULL, NULL);
-			int num = atoi(buf);
-			num++;
-			memset(buffer,0,sizeof(buffer));
-			swprintf(buffer,L"%d",num);
-			pControl->SetText(buffer);
-			AddMegTip(1);
+
+			AddMegTip(selectItemNode_Fri);
 		}
 		else
 			MessageBox(m_hWnd,L"不能发送空白消息",L"error",MB_OK);
@@ -636,7 +696,6 @@ LRESULT CMainFrame::OnKeyReturn(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& b
 {
 	if(wParam == VK_RETURN)  //按下回车键
 	{
-		CRichEditUI* pInputEdit = static_cast<CRichEditUI*>(m_PaintManager.FindControl(L"input_edit"));
 		if(pInputEdit && pInputEdit->IsFocused())
 			OnSendMessage();	
 	}
@@ -646,29 +705,27 @@ LRESULT CMainFrame::OnKeyReturn(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& b
 
 LRESULT CMainFrame::OnOwnTimer(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-	CBubbleChat* pBubbleList = static_cast<CBubbleChat*>(m_PaintManager.FindControl(L"Bubble_Chat"));
 	if(wParam == WM_RICH_SCROOL && pBubbleList)
 	{
 		SIZE sz = pBubbleList->GetScrollPos();
 		int cy = pBubbleList->GetScrollRange().cy;
-		if(sz.cy == cy)
+		if(sz.cy >= cy)
 			KillTimer(m_hWnd,WM_RICH_SCROOL);
 		else
 		{
 			sz.cy = cy;
+			//sz.cy += 48;
 			pBubbleList->SetScrollPos(sz);
 		}
 	}
 	else if(wParam == WM_RESTORE)
 	{
-		 CButtonUI* pButton = static_cast<CButtonUI*>(m_PaintManager.FindControl(L"setting"));
-		 m_PaintManager.SendNotify(pButton,DUI_MSGTYPE_CLICK);
+		 m_PaintManager.SendNotify(pButtonSet,DUI_MSGTYPE_CLICK);
 		 KillTimer(m_hWnd,WM_RESTORE);
 	}
 	else if(wParam == WM_TOP)
 	{
-		CButtonUI* pButton = static_cast<CButtonUI*>(m_PaintManager.FindControl(L"setting"));
-		m_PaintManager.SendNotify(pButton,DUI_MSGTYPE_CLICK);
+		m_PaintManager.SendNotify(pButtonSet,DUI_MSGTYPE_CLICK);
 		KillTimer(m_hWnd,WM_TOP);
 	}
 	else if(wParam == WM_CLOSE_ICON)
@@ -677,6 +734,32 @@ LRESULT CMainFrame::OnOwnTimer(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bH
 			//pMsgWnd->SetStatus(false);//会弹不出 右键菜单(此问题，未解决)
 			pMsgWnd->ShowWindow(SW_HIDE);
 		KillTimer(m_hWnd,WM_CLOSE_ICON);
+	}
+	else if(wParam == WM_CURSOR)
+	{
+		pInputEdit->SetFocus();
+		pInputEdit->SetText(L"");
+// 		int n = pBubbleList->GetCount();
+// 		Node* curBubbleListNode = pBubbleList->GetRoot()->get_last_child();
+// 		if(curBubbleListNode && curBubbleListNode->data().list_elment_)
+// 		{
+// 			m_PaintManager.SendNotify(curBubbleListNode->data().list_elment_,DUI_MSGTYPE_ITEMCLICK);
+// 		}
+		KillTimer(m_hWnd,WM_CURSOR);
+	}
+	else if(wParam == WM_FRIENDLIST_SCROLL)
+	{
+		SIZE sz = pFriendsList->GetScrollPos();
+		if(sz.cy == 0)
+		{
+			KillTimer(m_hWnd,WM_FRIENDLIST_SCROLL);
+			selectItemNode_Fri->data().list_elment_->Select(true);
+		}
+		else
+		{
+			sz.cy = 0;
+			pFriendsList->SetScrollPos(sz);
+		}
 	}
 
 	bHandled = FALSE;
@@ -689,7 +772,10 @@ LRESULT CMainFrame::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam,
 	{
  		CDuiString *strMenuName = (CDuiString*)wParam;
  		if (*strMenuName == _T("quit")) 
+		{
+			CloseALLWindows();
  			Close();
+		}
 		else if(*strMenuName == L"setting")
 			OnSetting(true);
  		delete strMenuName;
@@ -717,9 +803,19 @@ LRESULT CMainFrame::On_TroyIcon(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& b
 				int wnd_CY = iconRect.top - 115;
 				pMsgWnd =new CMessageWnd(iconRect);
 				pMsgWnd->Create(NULL, _T(""), UI_WNDSTYLE_FRAME, WS_EX_WINDOWEDGE |WS_EX_TOPMOST | WS_EX_TOOLWINDOW);
-				SetWindowPos(pMsgWnd->GetHWND(),HWND_TOP,wnd_CX,wnd_CY,222,115,true);
-				isShow = true;
+				//SetWindowPos(pMsgWnd->GetHWND(),HWND_TOP,wnd_CX,wnd_CY,222,115,TRUE);
+				SetWindowPos(pMsgWnd->GetHWND(),HWND_TOP,wnd_CX,wnd_CY-48,222,115+48,FALSE);
+				isShow = true; 
 				pMsgWnd->ShowModal();
+				//int id_from_troy = pMsgWnd->GetClickID();
+				//Node* ClickNode = FindClickNodeByID(id_from_troy);
+				//AddMegTip(ClickNode);
+				//模拟点击了该项目
+				//m_PaintManager.SendNotify(ClickNode->data().list_elment_,DUI_MSGTYPE_ITEMCLICK);
+				//CTabLayoutUI* pControl = static_cast<CTabLayoutUI*>(m_PaintManager.FindControl(_T("tabs")));
+				//COptionUI*   pOption = static_cast<COptionUI*>(m_PaintManager.FindControl(_T("chat")));
+				//pOption->Selected(true);
+				//pControl->SelectItem(0);
 				//窗口关闭
 				delete pMsgWnd;
 				pMsgWnd = NULL;
@@ -738,7 +834,7 @@ LRESULT CMainFrame::On_TroyIcon(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& b
 			//..............................
 			if(isShow)//也没用，右键菜单会随着其他窗口的关闭而消失
 				SetTimer(m_hWnd,WM_CLOSE_ICON,120,NULL);
-			break;
+			break;                            
 			//先关闭托盘窗口
  			/*if(isShow)
 				pMsgWnd->SetStatus(false);//会弹不出 右键菜单(此问题，未解决)
@@ -753,26 +849,37 @@ LRESULT CMainFrame::On_TroyIcon(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& b
 			else
 				::SetForegroundWindow(m_hWnd);
 			//先关闭托盘窗口
-			if(isShow)
-				pMsgWnd->SetStatus(false);//会弹不出 右键菜单
+			//if(isShow)
+				//pMsgWnd->SetStatus(false);//会弹不出 右键菜单
 			break;
 		}
 	default:
 		{
-			INT A = 1;
-			break;
 		}
 	}
 	bHandled = FALSE;
 	return 0;
 }
 
-void CMainFrame::AddMegTip(int num)
+void CMainFrame::AddMegTip(Node* ClickNode) //左侧的消息红点
 {
+	//消息提示
+	CButtonUI* pControl = static_cast<CButtonUI*>(m_PaintManager.FindSubControlByName(ClickNode->data().list_elment_, L"MsgTip"));
+	if(!pControl->IsVisible()) 
+		pControl->SetVisible();
+	char buf[10];
+	WideCharToMultiByte(CP_ACP, 0, pControl->GetText().GetData(), -1, buf, 10, NULL, NULL);
+	int num = atoi(buf);
+	num++;
+	TCHAR buffer[5];
+	memset(buffer,0,sizeof(buffer));
+	swprintf(buffer,L"%d",num);
+	pControl->SetText(buffer);
+
 	if(pButton_MsgTip)
 	{
 		pButton_MsgTip->SetVisible();
-		Msgcount += num;
+		Msgcount += 1;
 		TCHAR buffer[10];
 		swprintf(buffer,L"%d",Msgcount);
 		pButton_MsgTip->SetText(buffer);
@@ -864,5 +971,111 @@ void CMainFrame::OnSetting(bool flag)
 			::ShowWindow(settingFrame->GetHWND(),SW_RESTORE);
 		else
 			::SetForegroundWindow(settingFrame->GetHWND());
+	}
+}
+
+Node* CMainFrame::FindClickNodeByID(const int id)
+{
+	for(UINT i=0; i<friendsNode.size(); ++i)
+	{
+		if(friendsNode[i]->data().weixing_id == id)
+			return friendsNode[i];
+	}
+	return NULL;
+}
+
+void CMainFrame::CloseALLWindows()
+{
+	if(settingFrame)
+	{
+		settingFrame->Close();
+	}
+	if(pMsgWnd)
+	{
+		pMsgWnd->SetStatus(false);
+		delete pMsgWnd;
+		pMsgWnd = NULL;
+	}
+}
+
+void CMainFrame::OnBegChat(TNotifyUI& msg)
+{
+	Node* node = selectItemNode_Con;
+	if(node == NULL) return;
+	bool BFind = false;
+	for(UINT i=0; i<friendsNode.size(); ++i)
+	{
+		if(friendsNode[i]->data().weixing_id == node->data().weixing_id)
+		{
+			BFind = true;
+			break;
+		}
+	}
+	if(!BFind)//添加
+	{
+		FriendListItemInfo item = {0};
+		item.nick_name = node->data().text_;
+		item.folder = node->data().folder_;
+		item.logo = node->data().logo;
+		item.id = LAST_CONTACT;
+		item.weixing_id = node->data().weixing_id;
+		int insertIndex = 0; //在头部插入
+		Node* root = pFriendsList->AddNode(item, NULL, insertIndex);		//添加根节点，返回自身节点（根）
+		if(root == NULL) return;
+		friendsNode.push_back(root);
+
+		pOptionChat->Selected(true);
+		selectItemNode_Fri = root;
+
+		m_PaintManager.SendNotify(pOptionChat,DUI_MSGTYPE_CLICK);
+	}
+	else
+	{
+		selectItemNode_Fri = FindClickNodeByID(node->data().weixing_id);
+		pOptionChat->Selected(true);
+		m_PaintManager.SendNotify(pOptionChat,DUI_MSGTYPE_CLICK);
+		SIZE sz = pFriendsList->GetScrollRange();
+		int n = selectItemNode_Fri->data().list_elment_->GetIndex();
+		int itemHeight = selectItemNode_Fri->data().list_elment_->GetHeight();
+		if(n >8)
+		{
+
+		}
+	}
+}
+
+void CMainFrame::AddNodeToFriendList()
+{
+	int n = selectItemNode_Fri->data().list_elment_->GetIndex();
+	if(n>0)
+	{
+		FriendListItemInfo item = {0};
+		item.folder = selectItemNode_Fri->data().folder_ ;				//标记是否为根节点
+		item.nick_name = selectItemNode_Fri->data().text_ ;			//保存昵称资源
+		item.id = selectItemNode_Fri->data().type_ ;
+		item.weixing_id = selectItemNode_Fri->data().weixing_id;
+		item.logo = selectItemNode_Fri->data().logo;
+		selectItemNode_Fri->data().list_elment_->Select(false);
+
+		bool bRet =pFriendsList->RemoveNode(selectItemNode_Fri);
+		if(bRet)
+		{
+			//删除  std::vector<Node*> friendsNode;					//已添加的最近联系人节点
+			for (size_t i=0; i<friendsNode.size(); ++i)
+			{
+				if(friendsNode[i] == selectItemNode_Fri)
+				{
+					friendsNode.erase(friendsNode.begin()+i);
+					break;
+				}
+			}
+			Node* root = pFriendsList->AddNode(item,NULL,0);
+			if(root)
+			{
+				selectItemNode_Fri = root;
+				friendsNode.push_back(root);
+				SetTimer(m_hWnd,WM_FRIENDLIST_SCROLL,80,NULL);
+			}
+		}
 	}
 }

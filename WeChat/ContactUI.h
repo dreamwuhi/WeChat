@@ -14,7 +14,8 @@ struct ContactListItemInfo			//好友列表信息 结构体
 	CDuiString	back_name;			//备注名资源
 	CDuiString	weixin_id;				//微信号
 	CDuiString	zone;					//地区
-	UINT				group_id;				//所属群ID  
+	UINT				group_id;				//所属群ID
+	int				ID;						//类似QQ号（唯一）
 };
 
 class CContactUI : public CListUI

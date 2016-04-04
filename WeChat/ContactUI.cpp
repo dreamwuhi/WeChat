@@ -41,6 +41,8 @@ Node* CContactUI::AddNode(const ContactListItemInfo& item, Node* parent)
 	node->data().text_ = item.nick_name;
 	node->data().type_ = item.id;
 	node->data().group_id = item.group_id;
+	node->data().logo = item.logo;
+	node->data().weixing_id = item.ID;
 	if(item.folder == false)
 	{
 		CContainerUI* logo_container = static_cast<CContainerUI*>(paint_manager_.FindSubControlByName(pListElement, L"logo_container"));
@@ -187,7 +189,7 @@ void CContactUI::DoEvent(TEventUI& event)
 void CContactUI::RemoveAll()
 {
 	CListUI::RemoveAll();
-	for (int i=0; i<root_node_->num_children(); ++i)
+	for (int i=0; i<root_node_->num_children();)
 	{
 		Node* child = root_node_->child(i);
 		RemoveNode(child);

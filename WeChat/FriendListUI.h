@@ -21,11 +21,12 @@ public:
 	~CFriendListUI(void);
 public:
 	enum {SCROLL_TIMERID = 10};
-	Node* AddNode(const FriendListItemInfo& item, Node* parent);
+	Node* AddNode(const FriendListItemInfo& item, Node* parent,int insertIndex=-1);
 	void DoEvent(TEventUI& event);
 	void RemoveAll();
 	bool RemoveNode(Node* node);			//É¾³ý½Úµã
 	//bool SelectItem(int iIndex, bool bTakeFocus);
+	Node* GetRoot();
 private:
 	CDialogBuilder m_dlgBuilder;
 	CPaintManagerUI& paint_manager_;
