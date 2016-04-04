@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WeChat", "WeChat\WeChat.vcxproj", "{B30EB420-71DE-47E6-9D40-BF0AF81CB88D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestListUI", "TestListUI\TestListUI.vcxproj", "{FD19E23F-4C24-4A88-A93D-463F3C9B7901}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -13,6 +15,10 @@ Global
 		{B30EB420-71DE-47E6-9D40-BF0AF81CB88D}.Debug|Win32.Build.0 = Debug|Win32
 		{B30EB420-71DE-47E6-9D40-BF0AF81CB88D}.Release|Win32.ActiveCfg = Release|Win32
 		{B30EB420-71DE-47E6-9D40-BF0AF81CB88D}.Release|Win32.Build.0 = Release|Win32
+		{FD19E23F-4C24-4A88-A93D-463F3C9B7901}.Debug|Win32.ActiveCfg = Debug|Win32
+		{FD19E23F-4C24-4A88-A93D-463F3C9B7901}.Debug|Win32.Build.0 = Debug|Win32
+		{FD19E23F-4C24-4A88-A93D-463F3C9B7901}.Release|Win32.ActiveCfg = Release|Win32
+		{FD19E23F-4C24-4A88-A93D-463F3C9B7901}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

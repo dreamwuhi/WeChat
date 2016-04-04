@@ -683,8 +683,9 @@ void CMainFrame::OnSendMessage()
 			//Çå¿Õ ÊäÈëÄÚÈÝ
 			pInputEdit->SetFocus();
 			pInputEdit->SetText(L"");
-			SetTimer(m_hWnd,WM_RICH_SCROOL,80,NULL);
-
+			//SetTimer(m_hWnd,WM_RICH_SCROOL,80,NULL);
+			SIZE sz={0,0};
+			pBubbleList->SetScrollPos(sz);
 			AddMegTip(selectItemNode_Fri);
 		}
 		else
@@ -1026,8 +1027,10 @@ void CMainFrame::OnBegChat(TNotifyUI& msg)
 
 		pOptionChat->Selected(true);
 		selectItemNode_Fri = root;
-
 		m_PaintManager.SendNotify(pOptionChat,DUI_MSGTYPE_CLICK);
+		//ÖÃ¶¥
+		SIZE sz={0};
+		pFriendsList->SetScrollPos(sz);
 	}
 	else
 	{
@@ -1037,10 +1040,6 @@ void CMainFrame::OnBegChat(TNotifyUI& msg)
 		SIZE sz = pFriendsList->GetScrollRange();
 		int n = selectItemNode_Fri->data().list_elment_->GetIndex();
 		int itemHeight = selectItemNode_Fri->data().list_elment_->GetHeight();
-		if(n >8)
-		{
-
-		}
 	}
 }
 
@@ -1074,7 +1073,11 @@ void CMainFrame::AddNodeToFriendList()
 			{
 				selectItemNode_Fri = root;
 				friendsNode.push_back(root);
-				SetTimer(m_hWnd,WM_FRIENDLIST_SCROLL,80,NULL);
+				//ÖÃ¶¥
+				SIZE sz={0};
+				pFriendsList->SetScrollPos(sz);
+				selectItemNode_Fri->data().list_elment_->Select();
+				//SetTimer(m_hWnd,WM_FRIENDLIST_SCROLL,80,NULL);
 			}
 		}
 	}
